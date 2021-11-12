@@ -12,6 +12,7 @@ const UserSchema = new Schema(
             type: String,
             required: 'Please enter an email!',
             unique: true,
+            trim: true
         },
         thoughts: [
             {

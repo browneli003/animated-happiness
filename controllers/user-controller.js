@@ -5,21 +5,23 @@ const userController = {
     // get all users
     getAllUsers(req, res) {
         User.find({})
-            .populate({ path: 'thoughts', select: '-__v' })
-            .populate({ path: 'friends', select: '-__v -thoughts' })
-            .select('-__v')
+            .populate({
+                path: 'thoughts',
+                path: 'friends',
+                select: '-__v'
+            })
             .then(dbUserData => res.json(dbUserData))
             .catch(err => {
                 console.log(err);
-                return res.status(400).json(err);
+                return res.status(400);
             });
     },
 
     // get single user by _id
-    getUserById({ params }, res) {
-        User.findOne({ _id: params.id })
-            .populate({ path: 'thoughts', select: '-__v' })
-            .populate({ path: 'friends', select: '-__v' })
+    getUserById(req, res) {
+        User.findOne({ _id: req.params.id })
+            .populate('thoughts')
+            .populate('friends')
             .select('-__v')
             .then(dbUserData => {
                 if (!dbUserData) {
@@ -30,75 +32,99 @@ const userController = {
             })
             .catch(err => {
                 console.log(err);
-                return res.status(400).json(err);
+                return res.status(400);
             });
     },
 
     // create new user
-    createUser({ body }, res) {
-        User.create(body)
+    createUser(req, res) {
+        User.create(req.body)
             .then(dbUserData => res.json(dbUserData))
-            .catch(err => res.status(400).json(err));
+
     },
 
     // update user by _id
-    updateUser({ params, body }, res) {
+    updateUser(req, res) {
         User.findOneAndUpdate(
-            { _id: params.id },
-            body,
-            { new: true, runValidators: true }
+            { _id: req.params.id },
+            req.body,
+            {
+                new: true,
+                runValidators: true
+            }
         )
             .then(dbUserData => {
                 if (!dbUserData) {
-                    res.status(404).json({ message: 'No user found with this ID!' });
+                    res.status(400).json({ message: 'No user found with this ID' });
                     return;
                 }
+
                 return res.json(dbUserData);
             })
-            .catch(err => res.status(400).json(err));
+            .catch(err => {
+                console.log(err);
+                res.sendStatus(400);
+            });
     },
 
     // delete user by _id
-    deleteUser({ params }, res) {
-        User.findOneAndDelete({ _id: params.id })
-            .then(dbUserData => {
-                if (!dbUserData) {
-                    res.status(404).json({ message: 'No user found with this ID!' });
-                    return;
-                }
-                return Thought.deleteMany({ userId: params.id })
+    deleteUser(req, res) {
+        User.findOneAndDelete(
+            {
+                _id: req.params.id
             })
-            .then(data => res.json(data))
-            .catch(err => res.status(400).json(err));
+            .then(dbUserData => {
+                Thought.deleteMany(
+                    {
+                        _id: {
+                            $in: userData.thoughts
+                        }
+                    }
+                ).then(dbThoughtData => {
+                    res.json(dbThoughtData);
+                })
+            })
+            .catch(err => {
+                console.log(err);
+                res.sendStatus(400);
+            });
     },
 
     // add friends
-    addFriend({ params }, res) {
+    addFriend(req, res) {
         User.findOneAndUpdate(
-            { _id: params.userId },
-            { $addToSet: { friends: params.friendId } },
-            { new: true, runValidators: true }
+            { _id: req.params.userID },
+            {
+                $addToSet: {
+                    friends: {
+                        _id: req.params.friendID
+                    }
+                }
+            },
+            { new: true }
         )
-            .then(dbUserData => {
-                if (!dbUserData) {
-                    res.status(404).json({ message: 'No user found with this ID!' });
-                    return;
-                };
-                return res.json(dbUserData);
-            })
-            .catch(err => res.json(err));
+        .then(dbUserData => res.json(dbUserData))
+        .catch(err => {
+            console.log(err);
+            res.sendStatus(400);
+        });
     },
 
     // delete friends
-    deleteFriend({ params }, res) {
+    deleteFriend(req, res) {
         User.findOneAndUpdate(
-            { _id: params.userId },
-            { $pull: { friends: params.friendId } },
-            { new: true }
+            { _id: req.params.userID },
+            {
+                $pull: {
+                    friends: req.params.friendID
+                }
+            }
         )
-            .then(dbUserData => res.json(dbUserData))
-            .catch(err => res.json(err));
+        .then(dbUserData => res.json(dbUserData))
+        .catch(err => {
+            console.log(err);
+            res.sendStatus(400);
+        });
     }
 };
-
 module.exports = userController;
