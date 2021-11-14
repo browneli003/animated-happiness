@@ -33,8 +33,8 @@ const thoughtController = {
                 { new: true }
             )
         )
-        .then(dbuserData => {
-            res.json(dbuserData);
+        .then(dbUserData => {
+            res.json(dbUserData);
         })
         .catch(err => {
             console.log(err);
@@ -43,7 +43,7 @@ const thoughtController = {
     },
 
     // update thought
-    updateThought({ params, body }, res) {
+    updateThought(req, res) {
         Thought.findOneAndUpdate(
             { _id: req.params.id },
             req.body,
@@ -58,7 +58,7 @@ const thoughtController = {
                 return;
             }
 
-            res.json(dbthoughtData)
+            res.json(dbThoughtData)
         })
         .catch(err => {
             console.log(err);
@@ -71,7 +71,7 @@ const thoughtController = {
         Thought.findOneAndDelete({ _id: req.params.id })
         .then(dbThoughtData => {
             User.findOneAndDelete(
-                { username: thoughtData.username },
+                { username: dbThoughtData.username },
                 { $pull: { thoughts: { _id: req.params.id }}}
             )
             res.json(dbThoughtData)
@@ -85,8 +85,8 @@ const thoughtController = {
     // post reaction
     addReaction(req, res) {
         Thought.findOneAndUpdate(
-            { _id: params.thoughtId },
-            { $addToSet: { reactions: body } },
+            { _id: req.params.thoughtID },
+            { $addToSet: { reactions: req.body } },
             { new: true, runValidators: true }
         )
             .then(dbThoughtData => {
@@ -102,9 +102,9 @@ const thoughtController = {
     // delete reaction
     deleteReaction(req, res) {
         Thought.findOneAndUpdate(
-            { _id: params.thoughtId },
-            { $pull: { reactions: { reactionId: params.reactionId } } },
-            { new: true }
+            { _id: req.params.thoughtID },
+            { $pull: { reactions: { reactionID: req.params.reactionID } } },
+            { new: true, runValidators: true }
         )
             .then(dbThoughtData => {
                 if (!dbThoughtData) {
